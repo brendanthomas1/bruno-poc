@@ -1,0 +1,32 @@
+info:
+  name: data-driven
+  type: folder
+  seq: 1
+  tags:
+    - data-driven
+
+request:
+  variables:
+    - name: query
+      value: The Matrix
+    - name: expectedTitle
+      value: The Matrix
+    - name: expectedYear
+      value: "1999"
+
+docs:
+  content: |-
+    # data-driven
+
+    The same request runs once per row of `data/movie-search-cases.csv`
+    (columns `query`, `expectedTitle`, `expectedYear`):
+
+    ```sh
+    cd collections/search-discover
+    bru run data-driven --env local --csv-file-path ../../data/movie-search-cases.csv
+    ```
+
+    Each CSV row overrides the folder variables below for that iteration. When you run
+    the folder without a CSV (or click Send in the app), these defaults are used.
+    `--json-file-path` works the same way with a JSON array.
+  type: text/markdown

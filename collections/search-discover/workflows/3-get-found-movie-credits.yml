@@ -1,0 +1,54 @@
+info:
+  name: 3. Get credits for the found movie
+  type: http
+  seq: 3
+  tags:
+    - workflow
+
+http:
+  method: GET
+  url: "{{baseUrl}}/movie/:movie_id/credits?language={{language}}"
+  params:
+    - name: language
+      value: "{{language}}"
+      type: query
+    - name: movie_id
+      value: "{{workflowMovieId}}"
+      type: path
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.id
+      operator: eq
+      value: "{{workflowMovieId}}"
+  scripts:
+    - type: before-request
+      code: |-
+        if (!bru.getVar("workflowMovieId")) {
+          console.log("[workflow] no movie id from step 1, skipping");
+          bru.runner.skipRequest();
+        }
+    - type: tests
+      code: |-
+        test("directed by the expected director", function () {
+          const expected = bru.interpolate("{{workflowExpectedDirector}}");
+          const directors = res.getBody().crew
+            .filter(function (c) { return c.job === "Director"; })
+            .map(function (c) { return c.name; });
+          expect(directors).to.include(expected);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  # 3. Get credits for the found movie
+
+  Last step of the chain. Checks the crew for `{{workflowExpectedDirector}}`.

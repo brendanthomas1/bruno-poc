@@ -1,0 +1,46 @@
+info:
+  name: Get movie that does not exist (404)
+  type: http
+  seq: 8
+  tags:
+    - negative
+
+http:
+  method: GET
+  url: "{{baseUrl}}/movie/:movie_id"
+  params:
+    - name: movie_id
+      value: "{{missingMovieId}}"
+      type: path
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "404"
+    - expression: res.body.success
+      operator: eq
+      value: "false"
+    - expression: res.body.status_code
+      operator: eq
+      value: "34"
+  scripts:
+    - type: tests
+      code: |-
+        test("explains the error in TMDB's error format", function () {
+          expect(res.getBody().status_message).to.match(/could not be found/i);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  # Get movie that does not exist (404)
+
+  Negative test. A made-up id must return **404** with TMDB error code **34**.
+  The request still sends a valid token, so it only passes when auth works.
+  Otherwise TMDB answers 401 first.

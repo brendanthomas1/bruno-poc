@@ -1,0 +1,54 @@
+info:
+  name: Get person combined credits
+  type: http
+  seq: 3
+
+http:
+  method: GET
+  url: "{{baseUrl}}/person/:person_id/combined_credits?language={{language}}"
+  params:
+    - name: language
+      value: "{{language}}"
+      type: query
+    - name: person_id
+      value: "{{personId}}"
+      type: path
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.cast
+      operator: isNotEmpty
+    - expression: res.body.crew
+      operator: isArray
+  scripts:
+    - type: tests
+      code: |-
+        const cast = res.getBody().cast;
+
+        test("credits span both movies and TV", function () {
+          const types = cast.map(function (c) { return c.media_type; });
+          expect(types).to.include("movie");
+          expect(types).to.include("tv");
+        });
+
+        test("includes The Matrix (603) as Neo", function () {
+          const matrix = cast.find(function (c) { return c.media_type === "movie" && c.id === 603; });
+          expect(matrix, "The Matrix credit").to.exist;
+          expect(matrix.character).to.include("Neo");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  # Get person combined credits
+
+  `GET /person/{person_id}/combined_credits` returns movie and TV credits in one list,
+  each with a `media_type`.

@@ -1,0 +1,56 @@
+info:
+  name: Search people
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: "{{baseUrl}}/search/person?query=Keanu Reeves&include_adult=false&language={{language}}&page=1"
+  params:
+    - name: query
+      value: Keanu Reeves
+      type: query
+    - name: include_adult
+      value: "false"
+      type: query
+    - name: language
+      value: "{{language}}"
+      type: query
+    - name: page
+      value: "1"
+      type: query
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.results[0].name
+      operator: eq
+      value: Keanu Reeves
+    - expression: res.body.results[0].known_for_department
+      operator: eq
+      value: Acting
+  scripts:
+    - type: tests
+      code: |-
+        test("known_for mixes movies and TV with a media_type", function () {
+          const knownFor = res.getBody().results[0].known_for;
+          expect(knownFor).to.be.an("array").that.is.not.empty;
+          knownFor.forEach(function (item) {
+            expect(item.media_type).to.be.oneOf(["movie", "tv"]);
+          });
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  # Search people
+
+  `GET /search/person`. The space in the query is URL-encoded for you
+  (`settings.encodeUrl: true`).

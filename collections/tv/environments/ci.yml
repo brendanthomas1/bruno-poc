@@ -1,0 +1,13 @@
+name: ci
+variables:
+  - name: baseUrl
+    value: https://api.themoviedb.org/3
+  - name: tmdbToken
+    value: "{{process.env.TMDB_READ_ACCESS_TOKEN}}"
+    description: Injected by GitHub Actions from the TMDB_READ_ACCESS_TOKEN repository secret.
+  - name: language
+    value: en-US
+  - name: region
+    value: US
+  - name: maxResponseTimeMs
+    value: "8000"

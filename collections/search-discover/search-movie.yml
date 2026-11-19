@@ -1,0 +1,58 @@
+info:
+  name: Search movies
+  type: http
+  seq: 1
+  tags:
+    - smoke
+
+http:
+  method: GET
+  url: "{{baseUrl}}/search/movie?query={{searchQuery}}&include_adult=false&language={{language}}&page=1"
+  params:
+    - name: query
+      value: "{{searchQuery}}"
+      type: query
+    - name: include_adult
+      value: "false"
+      type: query
+    - name: language
+      value: "{{language}}"
+      type: query
+    - name: page
+      value: "1"
+      type: query
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.total_results
+      operator: gt
+      value: "0"
+  scripts:
+    - type: tests
+      code: |-
+        const body = res.getBody();
+        const query = bru.interpolate("{{searchQuery}}").toLowerCase();
+
+        test("top result's title matches the query", function () {
+          expect(body.results[0].title.toLowerCase()).to.include(query);
+        });
+
+        test("adult titles are filtered out", function () {
+          body.results.forEach(function (m) { expect(m.adult).to.equal(false); });
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  # Search movies
+
+  `GET /search/movie?query=...`. The query comes from the collection variable
+  `searchQuery` (default "Inception").

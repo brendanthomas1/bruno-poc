@@ -1,0 +1,56 @@
+info:
+  name: Get movie images
+  type: http
+  seq: 7
+
+http:
+  method: GET
+  url: "{{baseUrl}}/movie/:movie_id/images?include_image_language=en,null"
+  params:
+    - name: include_image_language
+      value: en,null
+      type: query
+      description: English images plus images with no text.
+    - name: movie_id
+      value: "{{movieId}}"
+      type: path
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.posters
+      operator: isArray
+    - expression: res.body.backdrops
+      operator: isArray
+  scripts:
+    - type: tests
+      code: |-
+        const body = res.getBody();
+
+        test("has at least one poster", function () {
+          expect(body.posters.length).to.be.above(0);
+        });
+
+        test("image records have a path and dimensions", function () {
+          body.posters.concat(body.backdrops).forEach(function (img) {
+            expect(img.file_path).to.match(/^\/.+\.(jpg|png|svg)$/);
+            expect(img.width).to.be.a("number").and.be.above(0);
+            expect(img.height).to.be.a("number").and.be.above(0);
+          });
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  # Get movie images
+
+  `GET /movie/{movie_id}/images`. `file_path` values are relative. Join them with
+  `images.secure_base_url` + a size from `/configuration` (see the People & Configuration
+  collection) to get a full image URL.

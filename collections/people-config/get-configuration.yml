@@ -1,0 +1,56 @@
+info:
+  name: Get API configuration
+  type: http
+  seq: 1
+  tags:
+    - smoke
+
+http:
+  method: GET
+  url: "{{baseUrl}}/configuration"
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.images.secure_base_url
+      operator: startsWith
+      value: https://
+    - expression: res.body.images.poster_sizes
+      operator: contains
+      value: original
+    - expression: res.body.change_keys
+      operator: isArray
+  scripts:
+    - type: after-response
+      code: |-
+        // Save the image base URL so later requests can build full image URLs.
+        const images = res.getBody().images;
+        if (images && images.secure_base_url) {
+          bru.setVar("imageBaseUrl", images.secure_base_url);
+        }
+    - type: tests
+      code: |-
+        const images = res.getBody().images;
+
+        test("all image size lists are present", function () {
+          ["backdrop_sizes", "logo_sizes", "poster_sizes", "profile_sizes", "still_sizes"].forEach(function (key) {
+            expect(images[key], key).to.be.an("array").that.includes("original");
+          });
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  # Get API configuration
+
+  `GET /configuration`. TMDB returns image paths like `/abc.jpg`. Build a full URL as
+  `secure_base_url + size + file_path`.
+
+  The post-response script saves `imageBaseUrl`. **Get person details** uses it.

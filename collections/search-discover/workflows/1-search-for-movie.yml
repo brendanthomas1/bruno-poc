@@ -1,0 +1,63 @@
+info:
+  name: 1. Search for a movie
+  type: http
+  seq: 1
+  tags:
+    - workflow
+
+http:
+  method: GET
+  url: "{{baseUrl}}/search/movie?query={{workflowQuery}}&include_adult=false&language={{language}}&page=1"
+  params:
+    - name: query
+      value: "{{workflowQuery}}"
+      type: query
+    - name: include_adult
+      value: "false"
+      type: query
+    - name: language
+      value: "{{language}}"
+      type: query
+    - name: page
+      value: "1"
+      type: query
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.results
+      operator: isNotEmpty
+  scripts:
+    - type: before-request
+      code: |-
+        // Clear any value left over from an earlier run.
+        bru.deleteVar("workflowMovieId");
+        bru.deleteVar("workflowMovieTitle");
+    - type: after-response
+      code: |-
+        // Chaining: hand the top hit to the next requests as runtime variables.
+        const body = res.getBody();
+        if (res.getStatus() === 200 && body.results && body.results.length) {
+          bru.setVar("workflowMovieId", body.results[0].id);
+          bru.setVar("workflowMovieTitle", body.results[0].title);
+        }
+    - type: tests
+      code: |-
+        test("saved the movie id for the next step", function () {
+          expect(bru.getVar("workflowMovieId")).to.be.a("number");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  # 1. Search for a movie
+
+  Searches for `{{workflowQuery}}`. The post-response script saves `workflowMovieId` and
+  `workflowMovieTitle` for the next two requests.

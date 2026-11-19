@@ -1,0 +1,67 @@
+info:
+  name: Get series details
+  type: http
+  seq: 1
+  tags:
+    - smoke
+
+http:
+  method: GET
+  url: "{{baseUrl}}/tv/:series_id?language={{language}}"
+  params:
+    - name: language
+      value: "{{language}}"
+      type: query
+    - name: series_id
+      value: "{{seriesId}}"
+      type: path
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.id
+      operator: eq
+      value: "{{seriesId}}"
+    - expression: res.body.name
+      operator: isString
+    - expression: res.body.seasons
+      operator: isArray
+    - expression: res.body.number_of_seasons
+      operator: gt
+      value: "0"
+  scripts:
+    - type: after-response
+      code: |-
+        // Save the season count so the season request can check its number against it.
+        const body = res.getBody();
+        if (body && body.number_of_seasons) {
+          bru.setVar("seriesSeasonCount", body.number_of_seasons);
+        }
+    - type: tests
+      code: |-
+        const show = res.getBody();
+
+        test("has the core series fields", function () {
+          expect(show).to.include.keys("id", "name", "overview", "first_air_date", "number_of_episodes", "networks", "status");
+        });
+
+        test("seasons list agrees with number_of_seasons", function () {
+          // TMDB may add a "Specials" season 0 that number_of_seasons does not count.
+          const regular = show.seasons.filter(function (s) { return s.season_number > 0; });
+          expect(regular.length).to.equal(show.number_of_seasons);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  # Get series details
+
+  `GET /tv/{series_id}`. Defaults to Breaking Bad (1396).
+  The post-response script saves `seriesSeasonCount` for later requests.

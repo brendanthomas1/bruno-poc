@@ -1,0 +1,48 @@
+info:
+  name: List popular TV
+  type: http
+  seq: 4
+  tags:
+    - smoke
+
+http:
+  method: GET
+  url: "{{baseUrl}}/tv/popular?language={{language}}&page=1"
+  params:
+    - name: language
+      value: "{{language}}"
+      type: query
+    - name: page
+      value: "1"
+      type: query
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.results
+      operator: length
+      value: "20"
+  scripts:
+    - type: tests
+      code: |-
+        test("results are TV shows (name, not title)", function () {
+          res.getBody().results.forEach(function (show) {
+            expect(show).to.include.keys("id", "name", "first_air_date", "origin_country");
+            expect(show).to.not.have.property("title");
+          });
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  # List popular TV
+
+  `GET /tv/popular`. TV results use `name` and `first_air_date`, while movies use
+  `title` and `release_date`. The test checks that difference.

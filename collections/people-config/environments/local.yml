@@ -1,0 +1,13 @@
+name: local
+variables:
+  - name: baseUrl
+    value: https://api.themoviedb.org/3
+  - name: tmdbToken
+    value: "{{process.env.TMDB_READ_ACCESS_TOKEN}}"
+    description: Read from the gitignored .env file. The file only holds a reference, never the token.
+  - name: language
+    value: en-US
+  - name: region
+    value: US
+  - name: maxResponseTimeMs
+    value: "3000"

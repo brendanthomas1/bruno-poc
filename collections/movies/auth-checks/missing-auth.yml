@@ -1,0 +1,38 @@
+info:
+  name: No credentials is rejected (401)
+  type: http
+  seq: 2
+  tags:
+    - negative
+
+http:
+  method: GET
+  url: "{{baseUrl}}/movie/:movie_id"
+  params:
+    - name: movie_id
+      value: "{{movieId}}"
+      type: path
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "401"
+  scripts:
+    - type: tests
+      code: |-
+        test("no Authorization header was sent", function () {
+          expect(req.getHeader("Authorization")).to.be.oneOf([undefined, null, ""]);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  # No credentials is rejected (401)
+
+  This request has **no `auth` block**, which means auth mode "No Auth". It does not
+  inherit anything, so no `Authorization` header is sent. TMDB must answer **401**.

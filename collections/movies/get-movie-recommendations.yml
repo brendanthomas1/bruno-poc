@@ -1,0 +1,53 @@
+info:
+  name: Get movie recommendations
+  type: http
+  seq: 6
+
+http:
+  method: GET
+  url: "{{baseUrl}}/movie/:movie_id/recommendations?language={{language}}&page=1"
+  params:
+    - name: language
+      value: "{{language}}"
+      type: query
+    - name: page
+      value: "1"
+      type: query
+    - name: movie_id
+      value: "{{movieId}}"
+      type: path
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.results
+      operator: isArray
+  scripts:
+    - type: tests
+      code: |-
+        const body = res.getBody();
+        const sourceId = Number(bru.interpolate("{{movieId}}"));
+
+        test("returns recommendations", function () {
+          expect(body.results.length).to.be.above(0);
+        });
+
+        test("does not recommend the movie itself", function () {
+          const ids = body.results.map(function (m) { return m.id; });
+          expect(ids).to.not.include(sourceId);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  # Get movie recommendations
+
+  `GET /movie/{movie_id}/recommendations`. Checks that the source movie never
+  recommends itself.

@@ -1,0 +1,63 @@
+info:
+  name: Search movie by title (iteration data)
+  type: http
+  seq: 1
+  tags:
+    - data-driven
+
+http:
+  method: GET
+  url: "{{baseUrl}}/search/movie?query={{query}}&include_adult=false&language={{language}}&page=1"
+  params:
+    - name: query
+      value: "{{query}}"
+      type: query
+    - name: include_adult
+      value: "false"
+      type: query
+    - name: language
+      value: "{{language}}"
+      type: query
+    - name: page
+      value: "1"
+      type: query
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.total_results
+      operator: gt
+      value: "0"
+  scripts:
+    - type: tests
+      code: |-
+        // Values come from the current CSV row (bru.runner.iterationData), or from the
+        // folder defaults when there is no CSV.
+        function fromRowOrFolder(key) {
+          const row = bru.runner.iterationData;
+          return row && row.has(key) ? String(row.get(key)) : bru.getFolderVar(key);
+        }
+        const expectedTitle = fromRowOrFolder("expectedTitle");
+        const expectedYear = fromRowOrFolder("expectedYear");
+
+        test("finds '" + expectedTitle + "' (" + expectedYear + ")", function () {
+          const match = res.getBody().results.find(function (m) {
+            return m.title === expectedTitle && String(m.release_date).startsWith(expectedYear);
+          });
+          expect(match, "no result titled " + expectedTitle + " released in " + expectedYear).to.exist;
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  # Search movie by title (iteration data)
+
+  A data-driven test, like Postman's iteration data. Run it with a CSV to check
+  many queries with one request definition.

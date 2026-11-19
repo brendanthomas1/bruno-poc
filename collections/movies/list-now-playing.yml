@@ -1,0 +1,59 @@
+info:
+  name: List now playing
+  type: http
+  seq: 5
+
+http:
+  method: GET
+  url: "{{baseUrl}}/movie/now_playing?language={{language}}&region={{region}}&page=1"
+  params:
+    - name: language
+      value: "{{language}}"
+      type: query
+    - name: region
+      value: "{{region}}"
+      type: query
+    - name: page
+      value: "1"
+      type: query
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.dates.minimum
+      operator: isString
+    - expression: res.body.dates.maximum
+      operator: isString
+    - expression: res.body.results
+      operator: isArray
+  scripts:
+    - type: tests
+      code: |-
+        const body = res.getBody();
+
+        test("the date window is valid", function () {
+          expect(new Date(body.dates.minimum).getTime()).to.be.below(new Date(body.dates.maximum).getTime());
+        });
+
+        test("results are movies with a release date", function () {
+          expect(body.results.length).to.be.above(0);
+          body.results.forEach(function (m) {
+            expect(m.title).to.be.a("string");
+            expect(m.release_date).to.match(/^\d{4}-\d{2}-\d{2}$/);
+          });
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  # List now playing
+
+  `GET /movie/now_playing` for the `{{region}}` set in the environment.
+  The response has a `dates` window (`minimum` and `maximum`) plus a normal page of results.

@@ -1,0 +1,53 @@
+info:
+  name: List popular movies (next page)
+  type: http
+  seq: 4
+
+http:
+  method: GET
+  url: "{{baseUrl}}/movie/popular?language={{language}}&page={{popularNextPage}}"
+  params:
+    - name: language
+      value: "{{language}}"
+      type: query
+    - name: page
+      value: "{{popularNextPage}}"
+      type: query
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.page
+      operator: eq
+      value: "2"
+  scripts:
+    - type: before-request
+      code: |-
+        // Pre-request script: when this request runs on its own (not after page 1), default to page 2.
+        if (!bru.getVar("popularNextPage")) {
+          bru.setVar("popularNextPage", 2);
+        }
+    - type: tests
+      code: |-
+        test("page 2 is not a copy of page 1", function () {
+          const page1Ids = bru.getVar("popularPage1Ids") || [];
+          const page2Ids = res.getBody().results.map(function (m) { return m.id; });
+          const overlap = page2Ids.filter(function (id) { return page1Ids.indexOf(id) !== -1; });
+          // Popularity can shift between calls, so allow a small overlap.
+          expect(overlap.length).to.be.below(5);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  # List popular movies (next page)
+
+  Uses `{{popularNextPage}}`, set by the previous request's post-response script.
+  This is Bruno's version of Postman's `pm.collectionVariables.set` chaining.

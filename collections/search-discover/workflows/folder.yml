@@ -1,0 +1,27 @@
+info:
+  name: workflows
+  type: folder
+  seq: 2
+  tags:
+    - workflow
+
+request:
+  variables:
+    - name: workflowQuery
+      value: "Dune: Part Two"
+    - name: workflowExpectedDirector
+      value: Denis Villeneuve
+
+docs:
+  content: |-
+    # workflows
+
+    Requests that pass data to each other, run in `seq` order:
+
+    1. **Search** for `{{workflowQuery}}`. The post-response script stores the top hit's
+       id and title with `bru.setVar`.
+    2. **Details** for `{{workflowMovieId}}`. Checks that the title matches the search hit.
+    3. **Credits** for `{{workflowMovieId}}`. Checks that the director is the one we expect.
+
+    If step 1 finds nothing, steps 2 and 3 skip themselves with `bru.runner.skipRequest()`.
+  type: text/markdown

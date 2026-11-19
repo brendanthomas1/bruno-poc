@@ -1,0 +1,59 @@
+info:
+  name: Get person details
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: "{{baseUrl}}/person/:person_id?language={{language}}"
+  params:
+    - name: language
+      value: "{{language}}"
+      type: query
+    - name: person_id
+      value: "{{personId}}"
+      type: path
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.id
+      operator: eq
+      value: "{{personId}}"
+    - expression: res.body.name
+      operator: eq
+      value: Keanu Reeves
+    - expression: res.body.birthday
+      operator: eq
+      value: 1964-09-02
+  scripts:
+    - type: tests
+      code: |-
+        const person = res.getBody();
+
+        test("has biography and profile image", function () {
+          expect(person.biography).to.be.a("string").and.not.be.empty;
+          expect(person.profile_path).to.match(/^\/.+\.jpg$/);
+        });
+
+        test("profile image URL can be built from /configuration", function () {
+          const base = bru.getVar("imageBaseUrl") || "https://image.tmdb.org/t/p/";
+          const url = base + "w185" + person.profile_path;
+          expect(url).to.match(/^https:\/\/.+\/w185\/.+\.jpg$/);
+          console.log("Profile image:", url);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  # Get person details
+
+  `GET /person/{person_id}`. Defaults to Keanu Reeves (6384). Builds a profile image URL
+  with `imageBaseUrl`, which the configuration request saved.

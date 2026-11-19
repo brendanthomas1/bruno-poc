@@ -1,0 +1,64 @@
+info:
+  name: Get movie credits
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: "{{baseUrl}}/movie/:movie_id/credits?language={{language}}"
+  params:
+    - name: language
+      value: "{{language}}"
+      type: query
+    - name: movie_id
+      value: "{{movieId}}"
+      type: path
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.cast
+      operator: isArray
+    - expression: res.body.crew
+      operator: isArray
+  scripts:
+    - type: tests
+      code: |-
+        const { cast, crew } = res.getBody();
+
+        test("cast is not empty and billed in order", function () {
+          expect(cast.length).to.be.above(0);
+          const orders = cast.map(function (c) { return c.order; });
+          const sorted = orders.slice().sort(function (a, b) { return a - b; });
+          expect(orders).to.deep.equal(sorted);
+        });
+
+        test("every cast member has a name and a character", function () {
+          cast.forEach(function (member) {
+            expect(member.name).to.be.a("string").and.not.be.empty;
+            expect(member).to.have.property("character");
+          });
+        });
+
+        test("crew includes a Director", function () {
+          const directors = crew.filter(function (c) { return c.job === "Director"; });
+          expect(directors.length).to.be.at.least(1);
+          bru.setVar("directorName", directors[0].name);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  # Get movie credits
+
+  `GET /movie/{movie_id}/credits` returns cast and crew.
+
+  The test also saves the director's name as a runtime variable
+  (`bru.setVar("directorName", ...)`), so you can see it under Runtime Variables in the app.

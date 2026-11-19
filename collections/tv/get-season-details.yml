@@ -1,0 +1,58 @@
+info:
+  name: Get season details
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: "{{baseUrl}}/tv/:series_id/season/:season_number?language={{language}}"
+  params:
+    - name: language
+      value: "{{language}}"
+      type: query
+    - name: series_id
+      value: "{{seriesId}}"
+      type: path
+    - name: season_number
+      value: "{{seasonNumber}}"
+      type: path
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.season_number
+      operator: eq
+      value: "{{seasonNumber}}"
+    - expression: res.body.episodes
+      operator: isArray
+  scripts:
+    - type: tests
+      code: |-
+        const season = res.getBody();
+
+        test("season exists within the series' season count", function () {
+          const count = bru.getVar("seriesSeasonCount");
+          if (count) {
+            expect(season.season_number).to.be.at.most(count);
+          }
+        });
+
+        test("episodes are numbered 1..n in order", function () {
+          const numbers = season.episodes.map(function (e) { return e.episode_number; });
+          numbers.forEach(function (n, i) { expect(n).to.equal(i + 1); });
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  # Get season details
+
+  `GET /tv/{series_id}/season/{season_number}`. Two path parameters, both from
+  collection variables.

@@ -1,0 +1,84 @@
+info:
+  name: Discover sci-fi movies (filters)
+  type: http
+  seq: 4
+
+http:
+  method: GET
+  url: "{{baseUrl}}/discover/movie?with_genres=878&primary_release_date.gte={{releasedAfter}}&vote_count.gte=500&sort_by=vote_average.desc&include_adult=false&language={{language}}&page=1"
+  params:
+    - name: with_genres
+      value: "878"
+      type: query
+      description: 878 = Science Fiction (see the genres request in People & Configuration).
+    - name: primary_release_date.gte
+      value: "{{releasedAfter}}"
+      type: query
+      description: Computed by the pre-request script (10 years ago).
+    - name: vote_count.gte
+      value: "500"
+      type: query
+    - name: sort_by
+      value: vote_average.desc
+      type: query
+    - name: include_adult
+      value: "false"
+      type: query
+    - name: language
+      value: "{{language}}"
+      type: query
+    - name: page
+      value: "1"
+      type: query
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.results
+      operator: isNotEmpty
+  scripts:
+    - type: before-request
+      code: |-
+        // Pre-request script: compute a moving date filter, so the request never goes stale.
+        const d = new Date();
+        d.setFullYear(d.getFullYear() - 10);
+        bru.setVar("releasedAfter", d.toISOString().slice(0, 10));
+    - type: tests
+      code: |-
+        const results = res.getBody().results;
+        const releasedAfter = bru.getVar("releasedAfter");
+
+        test("every result is tagged Science Fiction (878)", function () {
+          results.forEach(function (m) { expect(m.genre_ids).to.include(878); });
+        });
+
+        test("every result honours the release-date filter", function () {
+          results.forEach(function (m) { expect(m.release_date >= releasedAfter).to.equal(true); });
+        });
+
+        test("every result honours the vote-count filter", function () {
+          results.forEach(function (m) { expect(m.vote_count).to.be.at.least(500); });
+        });
+
+        test("results are sorted by vote_average, highest first", function () {
+          for (let i = 1; i < results.length; i++) {
+            expect(results[i - 1].vote_average).to.be.at.least(results[i].vote_average);
+          }
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  # Discover sci-fi movies (filters)
+
+  `GET /discover/movie` with genre, date, vote-count and sort filters.
+
+  The **pre-request script** sets `releasedAfter` to today minus 10 years. The
+  **tests** then check that TMDB applied every filter.

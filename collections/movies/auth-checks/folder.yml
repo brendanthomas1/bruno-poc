@@ -1,0 +1,37 @@
+info:
+  name: auth-checks
+  type: folder
+  seq: 1
+  tags:
+    - negative
+
+request:
+  auth:
+    type: bearer
+    token: this-is-not-a-real-token
+  scripts:
+    - type: tests
+      code: |-
+        // Folder-level tests: run after every request in this folder.
+        test("TMDB rejects the request with 401", function () {
+          expect(res.getStatus()).to.equal(401);
+        });
+
+        test("error body uses TMDB's error format", function () {
+          const body = res.getBody();
+          expect(body.success).to.equal(false);
+          expect(body.status_code).to.be.a("number");
+          expect(body.status_message).to.be.a("string").and.not.be.empty;
+        });
+
+docs:
+  content: |-
+    # auth-checks
+
+    Negative auth tests. They pass **without** a real token, so they also work as a
+    quick self-test of the setup.
+
+    This folder **overrides the collection's auth** with a bearer token that is
+    obviously fake. That shows folder-level auth. Requests inside use `auth: inherit`
+    (they get this folder's fake token) or turn auth off.
+  type: text/markdown

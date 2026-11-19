@@ -1,0 +1,59 @@
+info:
+  name: Multi search
+  type: http
+  seq: 3
+
+http:
+  method: GET
+  url: "{{baseUrl}}/search/multi?query=star wars&include_adult=false&language={{language}}&page=1"
+  params:
+    - name: query
+      value: star wars
+      type: query
+    - name: include_adult
+      value: "false"
+      type: query
+    - name: language
+      value: "{{language}}"
+      type: query
+    - name: page
+      value: "1"
+      type: query
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.results
+      operator: isNotEmpty
+  scripts:
+    - type: tests
+      code: |-
+        const results = res.getBody().results;
+
+        test("every result says what kind of thing it is", function () {
+          results.forEach(function (r) {
+            expect(r.media_type).to.be.oneOf(["movie", "tv", "person"]);
+          });
+        });
+
+        test("each media type has the right name field", function () {
+          results.forEach(function (r) {
+            if (r.media_type === "movie") expect(r).to.have.property("title");
+            if (r.media_type === "tv" || r.media_type === "person") expect(r).to.have.property("name");
+          });
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  # Multi search
+
+  `GET /search/multi` searches movies, TV and people at once. Each result has a
+  `media_type`, and the tests check the shape for each type.

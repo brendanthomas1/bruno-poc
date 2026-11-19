@@ -1,0 +1,68 @@
+info:
+  name: List popular movies (page 1)
+  type: http
+  seq: 3
+  tags:
+    - smoke
+
+http:
+  method: GET
+  url: "{{baseUrl}}/movie/popular?language={{language}}&page=1"
+  params:
+    - name: language
+      value: "{{language}}"
+      type: query
+    - name: page
+      value: "1"
+      type: query
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.page
+      operator: eq
+      value: "1"
+    - expression: res.body.results
+      operator: length
+      value: "20"
+  scripts:
+    - type: after-response
+      code: |-
+        // Post-response script: save pagination state for the next request.
+        const body = res.getBody();
+        if (body && body.page) {
+          bru.setVar("popularNextPage", body.page + 1);
+          bru.setVar("popularPage1Ids", (body.results || []).map(function (m) { return m.id; }));
+        }
+    - type: tests
+      code: |-
+        const body = res.getBody();
+
+        test("pagination metadata is consistent", function () {
+          expect(body.total_pages).to.be.a("number").and.be.above(1);
+          expect(body.total_results).to.be.at.least(body.results.length);
+        });
+
+        test("every result has the list-item shape", function () {
+          body.results.forEach(function (m) {
+            expect(m).to.include.keys("id", "title", "popularity", "release_date", "genre_ids");
+            expect(m.genre_ids).to.be.an("array");
+          });
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  # List popular movies (page 1)
+
+  `GET /movie/popular`. TMDB pages hold 20 items.
+
+  The **post-response script** saves `popularNextPage` and the ids on this page.
+  The next request uses them to fetch page 2.

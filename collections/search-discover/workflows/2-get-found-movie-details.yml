@@ -1,0 +1,51 @@
+info:
+  name: 2. Get details for the found movie
+  type: http
+  seq: 2
+  tags:
+    - workflow
+
+http:
+  method: GET
+  url: "{{baseUrl}}/movie/:movie_id?language={{language}}"
+  params:
+    - name: language
+      value: "{{language}}"
+      type: query
+    - name: movie_id
+      value: "{{workflowMovieId}}"
+      type: path
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.id
+      operator: eq
+      value: "{{workflowMovieId}}"
+  scripts:
+    - type: before-request
+      code: |-
+        if (!bru.getVar("workflowMovieId")) {
+          console.log("[workflow] no movie id from step 1, skipping");
+          bru.runner.skipRequest();
+        }
+    - type: tests
+      code: |-
+        test("details match the search hit", function () {
+          expect(res.getBody().title).to.equal(bru.getVar("workflowMovieTitle"));
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  # 2. Get details for the found movie
+
+  Uses `{{workflowMovieId}}` from step 1. If step 1 did not set it, the pre-request
+  script skips this request.

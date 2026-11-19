@@ -1,0 +1,47 @@
+info:
+  name: List movie genres
+  type: http
+  seq: 4
+
+http:
+  method: GET
+  url: "{{baseUrl}}/genre/movie/list?language={{language}}"
+  params:
+    - name: language
+      value: "{{language}}"
+      type: query
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.genres
+      operator: isNotEmpty
+  scripts:
+    - type: tests
+      code: |-
+        const genres = res.getBody().genres;
+
+        test("ids are unique", function () {
+          const ids = genres.map(function (g) { return g.id; });
+          expect(new Set(ids).size).to.equal(ids.length);
+        });
+
+        test("878 is Science Fiction (used by the Discover request)", function () {
+          const sciFi = genres.find(function (g) { return g.id === 878; });
+          expect(sciFi).to.deep.equal({ id: 878, name: "Science Fiction" });
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  # List movie genres
+
+  `GET /genre/movie/list`. Reference data. The Discover request in Search & Discover
+  depends on genre id 878, and this test checks it still means Science Fiction.

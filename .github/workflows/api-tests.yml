@@ -1,0 +1,59 @@
+name: API tests (Bruno)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  # Postman "monitors" -> a scheduled CI run. 06:00 UTC daily.
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: api-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bruno:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Bruno CLI (pinned in package-lock.json)
+        run: npm ci
+
+      - name: Check the TMDB secret is configured
+        env:
+          TMDB_READ_ACCESS_TOKEN: ${{ secrets.TMDB_READ_ACCESS_TOKEN }}
+        run: |
+          if [ -z "$TMDB_READ_ACCESS_TOKEN" ]; then
+            echo "::error::Repository secret TMDB_READ_ACCESS_TOKEN is not set (Settings → Secrets and variables → Actions)."
+            exit 1
+          fi
+
+      # The token only exists as a process environment variable for this step.
+      # environments/ci.yml reads it with {{process.env.TMDB_READ_ACCESS_TOKEN}}.
+      # It is never written to disk or to the reports.
+      - name: Run all collections (env "ci")
+        env:
+          TMDB_READ_ACCESS_TOKEN: ${{ secrets.TMDB_READ_ACCESS_TOKEN }}
+        run: npm run test:ci
+
+      - name: Upload JUnit + HTML reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: bruno-reports
+          path: reports/
+          if-no-files-found: error
+          retention-days: 14

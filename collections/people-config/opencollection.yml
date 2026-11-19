@@ -1,0 +1,53 @@
+opencollection: 1.0.0
+
+info:
+  name: TMDB - People & Configuration
+
+request:
+  headers:
+    - name: Accept
+      value: application/json
+  auth:
+    type: bearer
+    token: "{{tmdbToken}}"
+  variables:
+    - name: personId
+      value: "6384"
+  scripts:
+    - type: before-request
+      code: |-
+        // Collection-level pre-request script: runs before EVERY request in this collection.
+        // Gives a clear hint when the token was never configured, instead of a bare 401.
+        const token = bru.interpolate("{{tmdbToken}}");
+        const looksMissing = !token || token.includes("{{") || token.startsWith("paste-your");
+        if (looksMissing && req.getAuthMode() !== "none") {
+          console.log("[bruno-poc] tmdbToken is empty. Add TMDB_READ_ACCESS_TOKEN to .env (see README).");
+        }
+    - type: tests
+      code: |-
+        // Collection-level tests: run after EVERY request in this collection.
+        test("responds within the environment's time budget", function () {
+          const budget = Number(bru.getEnvVar("maxResponseTimeMs") || 3000);
+          expect(res.getResponseTime()).to.be.below(budget);
+        });
+
+        test("responds with JSON", function () {
+          expect(String(res.getHeader("content-type"))).to.include("application/json");
+        });
+
+docs:
+  content: |-
+    # TMDB - People & Configuration
+
+    People endpoints and the reference data every TMDB client needs
+    (image configuration and genre lists). `personId` defaults to 6384 (Keanu Reeves).
+
+    The configuration request saves `imageBaseUrl` with `bru.setVar`. Later
+    requests use it to build full image URLs.
+  type: text/markdown
+bundled: false
+extensions:
+  bruno:
+    ignore:
+      - node_modules
+      - .git

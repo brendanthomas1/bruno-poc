@@ -1,0 +1,14 @@
+opencollection: 1.0.0
+info:
+  name: TMDB Bruno POC
+  type: workspace
+
+collections:
+  - name: TMDB - Movies
+    path: collections/movies
+  - name: TMDB - TV
+    path: collections/tv
+  - name: TMDB - Search & Discover
+    path: collections/search-discover
+  - name: TMDB - People & Configuration
+    path: collections/people-config

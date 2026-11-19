@@ -1,0 +1,24 @@
+{
+  "name": "bruno-poc",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Proof of concept: git-native API tests with Bruno against The Movie Database (TMDB) API",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.12"
+  },
+  "scripts": {
+    "test": "node scripts/run-collections.mjs",
+    "test:ci": "node scripts/run-collections.mjs --env ci",
+    "test:movies": "node scripts/run-collections.mjs movies",
+    "test:tv": "node scripts/run-collections.mjs tv",
+    "test:search": "node scripts/run-collections.mjs search-discover",
+    "test:people": "node scripts/run-collections.mjs people-config",
+    "test:data-driven": "node scripts/run-collections.mjs --only-data-driven",
+    "test:auth-checks": "cd collections/movies && bru run auth-checks --env local",
+    "env:link": "node scripts/link-env.mjs"
+  },
+  "devDependencies": {
+    "@usebruno/cli": "4.3.0"
+  }
+}

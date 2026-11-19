@@ -1,0 +1,78 @@
+info:
+  name: Get movie details
+  type: http
+  seq: 1
+  tags:
+    - smoke
+
+http:
+  method: GET
+  url: "{{baseUrl}}/movie/:movie_id?language={{language}}"
+  params:
+    - name: language
+      value: "{{language}}"
+      type: query
+    - name: movie_id
+      value: "{{movieId}}"
+      type: path
+      description: TMDB movie id. Defaults to the collection variable movieId (550, Fight Club).
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.responseTime
+      operator: lt
+      value: "3000"
+    - expression: res.body.id
+      operator: eq
+      value: "{{movieId}}"
+    - expression: res.body.title
+      operator: isString
+    - expression: res.body.genres
+      operator: isArray
+    - expression: res.body.imdb_id
+      operator: startsWith
+      value: tt
+  scripts:
+    - type: tests
+      code: |-
+        const movie = res.getBody();
+
+        test("has the core fields a movie page needs", function () {
+          expect(movie).to.include.keys("id", "title", "overview", "release_date", "runtime", "vote_average", "poster_path");
+        });
+
+        test("fields have the expected types", function () {
+          expect(movie.title).to.be.a("string").and.not.be.empty;
+          expect(movie.runtime).to.be.a("number").and.be.above(0);
+          expect(movie.vote_average).to.be.within(0, 10);
+          expect(movie.release_date).to.match(/^\d{4}-\d{2}-\d{2}$/);
+        });
+
+        test("every genre has an id and a name", function () {
+          movie.genres.forEach(function (genre) {
+            expect(genre).to.have.property("id").that.is.a("number");
+            expect(genre).to.have.property("name").that.is.a("string");
+          });
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  # Get movie details
+
+  `GET /movie/{movie_id}` returns the primary record for a movie.
+
+  Shows:
+  * a **path parameter** (`:movie_id`) filled from a collection variable
+  * **declarative assertions** (status, response time, field types) in the Assert tab
+  * **JS tests** with Chai `expect` for checks that need code
+
+  TMDB reference: https://developer.themoviedb.org/reference/movie-details

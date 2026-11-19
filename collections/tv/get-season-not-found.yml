@@ -1,0 +1,38 @@
+info:
+  name: Get season that does not exist (404)
+  type: http
+  seq: 5
+  tags:
+    - negative
+
+http:
+  method: GET
+  url: "{{baseUrl}}/tv/:series_id/season/:season_number"
+  params:
+    - name: series_id
+      value: "{{seriesId}}"
+      type: path
+    - name: season_number
+      value: "99"
+      type: path
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "404"
+    - expression: res.body.success
+      operator: eq
+      value: "false"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  # Get season that does not exist (404)
+
+  Negative test: season 99 of a real series must return 404.

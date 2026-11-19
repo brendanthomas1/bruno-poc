@@ -1,0 +1,57 @@
+opencollection: 1.0.0
+
+info:
+  name: TMDB - Movies
+
+request:
+  headers:
+    - name: Accept
+      value: application/json
+  auth:
+    type: bearer
+    token: "{{tmdbToken}}"
+  variables:
+    - name: movieId
+      value: "550"
+    - name: missingMovieId
+      value: "999999999"
+  scripts:
+    - type: before-request
+      code: |-
+        // Collection-level pre-request script: runs before EVERY request in this collection.
+        // Gives a clear hint when the token was never configured, instead of a bare 401.
+        const token = bru.interpolate("{{tmdbToken}}");
+        const looksMissing = !token || token.includes("{{") || token.startsWith("paste-your");
+        if (looksMissing && req.getAuthMode() !== "none") {
+          console.log("[bruno-poc] tmdbToken is empty. Add TMDB_READ_ACCESS_TOKEN to .env (see README).");
+        }
+    - type: tests
+      code: |-
+        // Collection-level tests: run after EVERY request in this collection.
+        test("responds within the environment's time budget", function () {
+          const budget = Number(bru.getEnvVar("maxResponseTimeMs") || 3000);
+          expect(res.getResponseTime()).to.be.below(budget);
+        });
+
+        test("responds with JSON", function () {
+          expect(String(res.getHeader("content-type"))).to.include("application/json");
+        });
+
+docs:
+  content: |-
+    # TMDB - Movies
+
+    Movie endpoints of The Movie Database API v3.
+
+    * **Auth**: Bearer token set once here at collection level (`{{tmdbToken}}`).
+      Every request uses `auth: inherit`, except the `auth-checks` folder, which
+      overrides auth on purpose to prove that bad credentials are rejected.
+    * **Variables**: `movieId` defaults to 550 (Fight Club).
+    * **Collection tests**: every response is checked for JSON and response time.
+  type: text/markdown
+bundled: false
+extensions:
+  bruno:
+    ignore:
+      - node_modules
+      - .git
