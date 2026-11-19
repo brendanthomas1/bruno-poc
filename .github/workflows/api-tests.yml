@@ -55,5 +55,5 @@ jobs:
         with:
           name: bruno-reports
           path: reports/
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 14
